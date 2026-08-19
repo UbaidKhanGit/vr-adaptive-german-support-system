@@ -244,24 +244,40 @@ class DoctorBrain:
 doctor_brain = DoctorBrain()
 
 
+def translate_de_to_en(german_text):
+    """Translate German text to English via Argos Translate, never raising on failure."""
+    if not german_text or not german_text.strip():
+        return ""
+    try:
+        return argostranslate.translate.translate(german_text, "de", "en")
+    except Exception:
+        return "[translation unavailable]"
+
+
 # ===========================================================================
 # 3. FASTAPI SERVER LIFESPAN & ENDPOINTS
 # ===========================================================================
 
+def _ensure_argos_package(from_code, to_code):
+    installed = argostranslate.translate.get_installed_languages()
+    from_lang = next((l for l in installed if l.code == from_code), None)
+    to_lang = next((l for l in installed if l.code == to_code), None)
+    if from_lang and to_lang and from_lang.get_translation(to_lang):
+        return
+    argostranslate.package.update_package_index()
+    available = argostranslate.package.get_available_packages()
+    pkg = next((p for p in available if p.from_code == from_code and p.to_code == to_code), None)
+    if pkg:
+        argostranslate.package.install_from_path(pkg.download())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🤖 Initializing AI Models & Translation Packages...")
-    
-    # 1. Setup Argos Translate (English -> German fallback translation if needed)
-    _installed = argostranslate.translate.get_installed_languages()
-    _en = next((l for l in _installed if l.code == "en"), None)
-    _de = next((l for l in _installed if l.code == "de"), None)
-    if not (_en and _de and _en.get_translation(_de)):
-        argostranslate.package.update_package_index()
-        available = argostranslate.package.get_available_packages()
-        pkg = next((p for p in available if p.from_code == "en" and p.to_code == "de"), None)
-        if pkg:
-            argostranslate.package.install_from_path(pkg.download())
+
+    # 1. Setup Argos Translate (German <-> English, both directions)
+    _ensure_argos_package("de", "en")
+    _ensure_argos_package("en", "de")
 
     # 2. Initialize Faster-Whisper Model once
     stt_model = WhisperModel("small", device="cpu", compute_type="int8")
@@ -307,10 +323,15 @@ async def translate_audio(request: Request):
                 "en": "I couldn't hear you clearly. Could you please repeat that?"
             }
 
-        # 6. Return JSON payload required by the VR team
+        # 6. Translate the German transcription into English for the subtitle pipeline
+        user_transcript_en = translate_de_to_en(german_transcript)
+
+        # 7. Return JSON payload required by the VR team
         return {
             "user_transcript": german_transcript,
+            "user_transcript_en": user_transcript_en,
             "doctor_reply_de": doctor_response["de"],
+            "doctor_reply_en": doctor_response["en"],
             "translated_text": doctor_response["en"]
         }
         

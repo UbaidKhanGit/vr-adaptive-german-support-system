@@ -10,20 +10,21 @@ replies with the transcript, the doctor's German reply, and an English translati
   responsible for capturing microphone audio in a VR doctor's-office scenario, sending it to
   the AI server, and displaying/speaking the response to the user.
 - **AI server** (`ai-server/`) — a FastAPI application (`ai-server/main.py`) that, on startup,
-  loads a `faster-whisper` "small" speech-to-text model and ensures the Argos Translate
-  English→German language package is installed. It exposes one REST endpoint,
-  `POST /translate-audio` (see [`docs/api/`](../api/)).
+  loads a `faster-whisper` "small" speech-to-text model and ensures both the Argos Translate
+  German→English and English→German language packages are installed. It exposes one REST
+  endpoint, `POST /translate-audio` (see [`docs/api/`](../api/)).
 - **DoctorBrain** — a rule-based dialogue engine inside `ai-server/main.py`. It matches the
   transcribed German text against keyword sets to walk multi-step "symptom flow" trees (e.g.
   fever, headache, cough), recognize simpler one-off symptoms, and recognize general
   conversational intents (asking for a prescription, expressing worry, etc.), falling back to
   a rotating set of generic replies otherwise. It keeps per-process state (current flow,
   step, and which flows are already completed) across requests.
-- **Argos Translate** — loaded at startup for English↔German translation. In the current
-  server endpoint it is not invoked in the request path (the doctor's reply text is written
-  in German and English directly in `DoctorBrain`'s data); it is used for
-  translation-assisted answers in the standalone terminal prototype
-  (`ai-server/prototype/terminal_prototype.py`).
+- **Argos Translate** — loaded at startup for German↔English translation (both directions).
+  In the request path, it is invoked to translate the German transcription
+  (`user_transcript`) into English (`user_transcript_en`) for subtitle display; the doctor's
+  reply text itself is still written in German and English directly in `DoctorBrain`'s data,
+  not machine-translated. The English→German direction is used for translation-assisted
+  answers in the standalone terminal prototype (`ai-server/prototype/terminal_prototype.py`).
 
 ## Data flow (per request)
 
@@ -36,12 +37,14 @@ FastAPI server: POST /translate-audio
       ▼
 faster-whisper (German STT)
       │  german_transcript
-      ▼
-DoctorBrain.reply(german_transcript)
-      │  { de reply, en reply }
-      ▼
+      ├─────────────────────────────┐
+      ▼                             ▼
+DoctorBrain.reply(german_transcript)   Argos Translate (de → en)
+      │  { de reply, en reply }        │  user_transcript_en
+      ▼                             ◄──┘
 JSON response
-      │  { user_transcript, doctor_reply_de, translated_text }
+      │  { user_transcript, user_transcript_en,
+      │    doctor_reply_de, doctor_reply_en, translated_text }
       ▼
 Unity VR client
 ```

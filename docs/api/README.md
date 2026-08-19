@@ -19,15 +19,25 @@ one endpoint. A WebSocket API for streaming audio is planned but does not exist 
 
 `200 OK` with a JSON object:
 
-| Field              | Type   | Meaning                                                                 |
-|--------------------|--------|--------------------------------------------------------------------------|
-| `user_transcript`  | string | German text transcribed from the submitted audio via faster-whisper. Empty string if nothing was recognized. |
-| `doctor_reply_de`  | string | The doctor dialogue engine's (`DoctorBrain`) next line, in German.       |
-| `translated_text`  | string | English translation/subtitle of `doctor_reply_de`.                       |
+| Field                 | Type   | Meaning                                                                 |
+|-----------------------|--------|--------------------------------------------------------------------------|
+| `user_transcript`     | string | German text transcribed from the submitted audio via faster-whisper. Empty string if nothing was recognized. |
+| `user_transcript_en`  | string | English translation of `user_transcript`, produced by Argos Translate at request time. Empty string if `user_transcript` is empty. |
+| `doctor_reply_de`     | string | The doctor dialogue engine's (`DoctorBrain`) next line, in German.       |
+| `doctor_reply_en`     | string | English translation/subtitle of `doctor_reply_de`.                       |
+| `translated_text`     | string | **Deprecated.** Duplicates `doctor_reply_en`. Kept only for backwards compatibility with existing VR client code — new integrations should use `doctor_reply_en`. |
 
-If the transcript is empty (nothing understood), `doctor_reply_de`/`translated_text` are a
-fixed "I couldn't hear you clearly, could you repeat that?" message instead of a dialogue
-response.
+If the transcript is empty (nothing understood), `doctor_reply_de`/`doctor_reply_en`/
+`translated_text` are a fixed "I couldn't hear you clearly, could you repeat that?" message
+instead of a dialogue response.
+
+### Translation
+
+The German transcription (`user_transcript`) is translated to English at request time using
+Argos Translate, producing `user_transcript_en`. If the translation call fails for any reason,
+the endpoint does not error out — it degrades gracefully, returning `"[translation
+unavailable]"` for the translated field while still returning the transcription and doctor
+reply that were already produced.
 
 ### Notes
 
