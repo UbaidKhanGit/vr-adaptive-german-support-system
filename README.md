@@ -7,8 +7,8 @@ This repository contains the shared project files for the AI-supported VR German
 - Murad
 - Sufyan
 - Ubaid
-- Member 5
-- Member 6
+- <name>
+- <name>
 
 ## Main parts
 - AI server
@@ -18,6 +18,7 @@ This repository contains the shared project files for the AI-supported VR German
 
 ## Repository structure
 - `ai-server/` for backend AI work
+  - `ai-server/prototype/` holds the standalone terminal prototype (no Unity/VR dependency)
 - `vr-client/` for Unity / VR work
 - `sensors/` for sensor-related work
 - `docs/` for architecture, and API

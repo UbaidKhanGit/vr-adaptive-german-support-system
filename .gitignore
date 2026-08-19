@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Audio artifacts
+*.wav
+tts_cache/
+recording.wav

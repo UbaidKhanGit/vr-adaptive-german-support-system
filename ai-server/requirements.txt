@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+faster-whisper
+argostranslate
+numpy
+scipy
+sounddevice
+edge-tts
+pygame
