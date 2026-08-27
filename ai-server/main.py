@@ -295,6 +295,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@app.post("/reset")
+async def reset_conversation():
+    global doctor_brain
+    doctor_brain = DoctorBrain()
+    return {"status": "reset"}
+
+
 @app.post("/translate-audio")
 async def translate_audio(request: Request):
     try:
@@ -335,5 +342,7 @@ async def translate_audio(request: Request):
             "translated_text": doctor_response["en"]
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
