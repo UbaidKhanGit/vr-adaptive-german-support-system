@@ -3,7 +3,7 @@
 This repository contains the shared project files for the AI-supported VR German learning system.
 
 ## Team
-- Abuzar
+- Abuzar Hashmi
 - Murad
 - Sufyan
 - Ubaid
