@@ -8,6 +8,7 @@ import numpy as np
 from faster_whisper import WhisperModel
 import argostranslate.package
 import argostranslate.translate
+import time
 
 # Import the Sensor Rule Engine created in sensor_engine.py
 try:
@@ -712,23 +713,25 @@ async def reset_conversation():
 
 @app.post("/translate-audio")
 async def translate_audio(request: Request):
+    t0 = time.perf_counter()
     try:
         # 1. Capture raw PCM audio bytes from request body
         raw_pcm_bytes = await request.body()
-        
+
         if not raw_pcm_bytes:
             raise HTTPException(status_code=400, detail="No audio data received")
-            
+
         # 2. Convert 16-bit PCM binary to float32 NumPy array expected by Whisper
         audio_np = np.frombuffer(raw_pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-        
+
         # 3. Access pre-loaded Whisper model
         stt = request.app.state.models["stt_model"]
-        
+
         # 4. Transcribe audio array directly (No temp WAV files needed!)
         segments, _ = stt.transcribe(audio_np, language="de", beam_size=5)
         german_transcript = " ".join(s.text for s in segments).strip()
-        
+        t_stt = time.perf_counter()
+
         # 5. Calculate doctor response using DoctorBrain logic
         if german_transcript:
             doctor_response = doctor_brain.reply(german_transcript)
@@ -740,6 +743,11 @@ async def translate_audio(request: Request):
 
         # 6. Translate the German transcription into English for the subtitle pipeline
         user_transcript_en = translate_de_to_en(german_transcript)
+        t_end = time.perf_counter()
+
+        audio_sec = len(raw_pcm_bytes) / 2 / 16000
+        print(f"[LATENCY] audio={audio_sec:.1f}s  stt={t_stt - t0:.2f}s  "
+              f"translate={t_end - t_stt:.2f}s  total={t_end - t0:.2f}s")
 
         # 7. Return JSON payload required by the VR team
         return {
@@ -749,7 +757,7 @@ async def translate_audio(request: Request):
             "doctor_reply_en": doctor_response["en"],
             "translated_text": doctor_response["en"]
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
