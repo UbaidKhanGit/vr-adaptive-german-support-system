@@ -3,12 +3,12 @@
 This repository contains the shared project files for the AI-supported VR German learning system.
 
 ## Team
-- Abuzar
-- Murad
-- Sufyan
-- Ubaid
-- <name>
-- <name>
+- Murad Zulfugarov
+- Muhammad Sufyan
+- Md. Shaiful Azam
+- Syed Abuzar Hashmi
+- Ubaid khan
+- Víctor Juárez Gil
 
 ## Main parts
 - AI server
